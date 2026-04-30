@@ -185,6 +185,7 @@ def get_agent(
 Дополнительная информация может быть представлена ниже:
 {context}
 """),
+    ("placeholder", "{chat_history}"),
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}"),
     ])
