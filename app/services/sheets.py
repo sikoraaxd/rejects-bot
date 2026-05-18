@@ -7,6 +7,10 @@ from google.oauth2.service_account import Credentials
 
 from app.core.settings import PROJECT_ROOT, settings
 from app.schemas.analysis import CaseOption, CaseOptionsResponse, SourceDocument
+from io import BytesIO
+from urllib.parse import urlparse
+
+import requests
 
 
 SCOPES = [
@@ -55,6 +59,66 @@ CASE_FILTER_FIELDS = [
 ]
 
 
+
+def extract_google_file_id(url: str) -> str:
+    parsed = urlparse(url)
+    parts = parsed.path.strip("/").split("/")
+
+    if "d" in parts:
+        index = parts.index("d") + 1
+        if index < len(parts):
+            return parts[index]
+
+    raise ValueError(f"Не удалось достать file_id из URL: {url}")
+
+
+def extract_expert_analyze_from_xlsx_url(url: str) -> str:
+    try:
+        file_id = extract_google_file_id(url)
+
+        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+        response = requests.get(download_url, allow_redirects=True)
+        response.raise_for_status()
+
+        content_type = response.headers.get("content-type", "").lower()
+
+        if "text/html" in content_type:
+            raise RuntimeError(
+                "Google вернул HTML, а не xlsx. "
+                "Скорее всего, файл приватный или требует авторизацию."
+            )
+
+        sheets = pd.read_excel(
+            BytesIO(response.content),
+            sheet_name=[1, 2],      # 2-й и 3-й листы, индексация с нуля
+            header=None,
+            engine="openpyxl",
+        )
+
+        parts = []
+
+        for sheet_index, df in sheets.items():
+            if df.empty:
+                continue
+
+            content = "\n".join(
+                "\t".join(
+                    str(cell).strip()
+                    for cell in row
+                    if pd.notna(cell) and str(cell).strip()
+                )
+                for row in df.values.tolist()
+            ).strip()
+
+            if content:
+                parts.append(content)
+    except Exception as e:
+        print(f"Ошибка при извлечении анализа из xlsx: {e}")
+        return "Не удалось загрузить анализ"
+    return "\n\n".join(parts)
+
+
 class SheetsClient:
 
     def __init__(self):
@@ -87,7 +151,7 @@ class SheetsClient:
             if not self._is_month_enabled(worksheet.title):
                 continue
 
-            sheet = pd.DataFrame(worksheet.get_all_values())
+            sheet = pd.DataFrame(worksheet.get_all_values()[1:])  # пропускаем заголовок
             if len(sheet.columns) > 12:
                 sheet = sheet.iloc[:, :12]
             sheet.columns = CASES_SHEETS_COLUMN_NAMES
@@ -138,19 +202,31 @@ class SheetsClient:
 
 
     def extract_expert_analyze(self, sheet_url: str) -> str:
-        spreadsheet = self._gspread_client().open_by_url(sheet_url)
-        parts = []
+        try:
+            spreadsheet = self._gspread_client().open_by_url(sheet_url)
+            parts = []
 
-        for worksheet in spreadsheet.worksheets()[1:3]:
-            rows = worksheet.get_all_values()
-            if not rows:
-                continue
+            for worksheet in spreadsheet.worksheets()[1:3]:
+                rows = worksheet.get_all_values()
+                if not rows:
+                    continue
 
-            content = "\n".join(
-                "\t".join(cell.strip() for cell in row if cell.strip())
-                for row in rows
-            ).strip()
-            if content:
-                parts.append(f"{worksheet.title}\n{content}")
+                content = "\n".join(
+                    "\t".join(cell.strip() for cell in row if cell.strip())
+                    for row in rows
+                ).strip()
+                if content:
+                    parts.append(f"{worksheet.title}\n{content}")
+        
 
-        return "\n\n".join(parts)
+            return "\n\n".join(parts)
+        except:
+            print('Excel detected')
+            text = extract_expert_analyze_from_xlsx_url(sheet_url)
+            print(text)
+            return text
+
+
+if __name__ == "__main__":
+    SHEETS = SheetsClient()
+    print(SHEETS.extract_expert_analyze('https://docs.google.com/spreadsheets/d/1oNOETpW_jbgZK0G-BWon2shZHVD3KfeX/edit?gid=839579023#gid=839579023'))

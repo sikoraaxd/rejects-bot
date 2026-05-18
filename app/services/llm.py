@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import  tool
 from datetime import datetime
 from langchain_openai import ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
 
 from app.core.config import settings
 from app.services.sheets import SheetsClient
@@ -14,12 +15,20 @@ SHEETS = SheetsClient()
 
 
 def get_llm(temperature: float = 0.3):
-    return ChatOpenAI(
-        model=settings.llm_model,
-        api_key=settings.llm_api_key,
-        base_url=settings.llm_base_url,
-        temperature=temperature,
-    )
+    if settings.llm_provider == 'openai':
+        return ChatOpenAI(
+            model=settings.llm_model,
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url,
+            temperature=temperature,
+        )
+    elif settings.llm_provider == 'deepseek':
+        return ChatDeepSeek(
+            model=settings.llm_model,
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url,
+            temperature=temperature,
+        )
 
 
 @tool
@@ -57,6 +66,7 @@ def get_expert_analyze(
     case = filtered_data[0]
     if 'http' in case.expert_analyze:
         try:
+            print(case.expert_analyze)
             return SHEETS.extract_expert_analyze(case.expert_analyze)
         except:
             return 'Не удалось загрузить анализ'
@@ -102,10 +112,12 @@ def get_month_cases(month: str = "", query: str = "", limit: int = 200) -> str:
         month_key = month.strip()
         if not month_key or month_key.lower() == "all":
             data = SHEETS.get_all_cases()
+            print(data)
         else:
             sheets_by_lower = {name.lower(): name for name in SHEETS.sheets}
             sheet_name = sheets_by_lower.get(month_key.lower(), month_key)
             data = SHEETS.sheets[sheet_name]
+            print(data)
 
         data = data.drop(columns=['demand'], errors='ignore').fillna("")
 
@@ -179,14 +191,13 @@ def get_agent(
     prompt = ChatPromptTemplate.from_messages([
     ("system", f"""Сегодня {today}.
 Ты анализируешь кейсы с отказами кандидатам от заказчиков после интервью \
-и отвечаешь на вопросы пользователя. Все данные что ты будешь видеть - это данные с отказами.
+и отвечаешь на сообщения пользователя. Все данные что ты будешь видеть - это данные с отказами.
 Если нужно проанализировать конкретных кандидатов, \
 то ОБЯЗАТЕЛЬНО смотри на анализ экспертов.
-Дополнительная информация может быть представлена ниже:
-{context}
+Если в контексте передана информация по сотруднику, проекту, дате, грейдам, то ОБЯЗАТЕЛЬНО разбирай ТОЛЬКО эти кейсы.
 """),
     ("placeholder", "{chat_history}"),
-    ("human", "{input}"),
+    ("human", "Сообщение: {input}\n\nКонтекст: {context}"),
     ("placeholder", "{agent_scratchpad}"),
     ])
     agent =  create_tool_calling_agent(

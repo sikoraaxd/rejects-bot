@@ -215,6 +215,15 @@ wheels = [
 ]
 
 [[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/38/af70d7ab1ae9d4da450eeec1fa3918940a5fafb9055e934af8d6eb0c2313/et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54", size = 17234, upload-time = "2024-10-25T17:25:40.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa", size = 18059, upload-time = "2024-10-25T17:25:39.051Z" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.136.1"
 source = { registry = "https://pypi.org/simple" }
@@ -622,6 +631,19 @@ wheels = [
 ]
 
 [[package]]
+name = "langchain-deepseek"
+version = "0.1.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/64/15fe061165574b3ba80011d96cb3f428f9e6f5631cd76058b028333023db/langchain_deepseek-0.1.4.tar.gz", hash = "sha256:dc105138aee4fce03badd0521e69d5508b37f5c087d92b3e8481ffb8f9563d33", size = 8937, upload-time = "2025-07-22T17:37:42.798Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/d3/0da6f3f5548e1a771d0500e17da723996f8ba1398bcef7198a2ecbca6e1b/langchain_deepseek-0.1.4-py3-none-any.whl", hash = "sha256:9ce3dbfc7a40f221657ffe31e8623ea6e397f6c90de2a58d38204ac63e8f41ff", size = 7440, upload-time = "2025-07-22T17:37:41.618Z" },
+]
+
+[[package]]
 name = "langchain-openai"
 version = "0.3.35"
 source = { registry = "https://pypi.org/simple" }
@@ -761,6 +783,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f0/ee/d056c82f63c05f06baac0cffb4a90952d8274f90c49dfe244f20497b9bbd/openai-2.33.0.tar.gz", hash = "sha256:f850c435e2a4685bba3295bd54912dd26315d9c1b7733068186134d6e0599f9a", size = 693254, upload-time = "2026-04-28T14:04:42.428Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7d/32/37734d769bc8b42e4938785313cc05aade6cb0fa72479d3220a0d61a4e78/openai-2.33.0-py3-none-any.whl", hash = "sha256:03ac37d70e8c9e3a8124214e3afa785e2cbc12e627fbd98177a086ef2fd87ad5", size = 1162695, upload-time = "2026-04-28T14:04:40.482Z" },
+]
+
+[[package]]
+name = "openpyxl"
+version = "3.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "et-xmlfile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
 ]
 
 [[package]]
@@ -1138,8 +1172,10 @@ dependencies = [
     { name = "google-auth" },
     { name = "gspread" },
     { name = "langchain" },
+    { name = "langchain-deepseek" },
     { name = "langchain-openai" },
     { name = "langchain-qdrant" },
+    { name = "openpyxl" },
     { name = "pandas" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
@@ -1157,8 +1193,10 @@ requires-dist = [
     { name = "google-auth", specifier = ">=2.38.0" },
     { name = "gspread", specifier = ">=6.2.1" },
     { name = "langchain", specifier = "==0.3.27" },
+    { name = "langchain-deepseek", specifier = ">=0.1.4" },
     { name = "langchain-openai", specifier = ">=0.3.0,<0.4.0" },
     { name = "langchain-qdrant", specifier = ">=0.2.0,<0.3.0" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "pydantic-settings", specifier = ">=2.8.0" },
     { name = "python-multipart", specifier = ">=0.0.20" },

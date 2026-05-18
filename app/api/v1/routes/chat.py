@@ -40,8 +40,11 @@ async def chat(request: ChatRequest) -> ChatResponse:
         print(e)
         context = ''
     agent = get_agent(context=context)
+    print('message:',message)
+    print('context:', context)
     result = agent.invoke({
         "input": message,
+        "context": context,
         "chat_history": convert_chat_history(request.messages[:-1])
     })
     print(result)
