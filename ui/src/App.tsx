@@ -1,7 +1,6 @@
 import {
   ArrowUp,
   Bot,
-  Check,
   FileText,
   Link2,
   Loader2,
@@ -494,7 +493,7 @@ export function App() {
                   void sendMessage();
                 }
               }}
-              placeholder="Спросите по кейсу, таблице, файлу или ссылке"
+              placeholder="Задайте ваш вопрос"
             />
             <button className="send-button" type="submit" disabled={sending || (!draft.trim() && files.length === 0)}>
               {sending ? <Loader2 className="spin" size={18} /> : <ArrowUp size={18} />}
@@ -509,12 +508,6 @@ export function App() {
                 event.currentTarget.value = "";
               }}
             />
-          </div>
-          <div className="composer-hint">
-            <span>
-              <Check size={13} />
-              txt, md, csv, json, xlsx, xls и ссылки в тексте
-            </span>
           </div>
         </form>
       </main>

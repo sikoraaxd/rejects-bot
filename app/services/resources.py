@@ -10,7 +10,9 @@ from urllib.parse import urlparse
 
 import pandas as pd
 import requests
+from docx import Document
 from fastapi import UploadFile
+from pypdf import PdfReader
 
 from app.services.sheets import SheetsClient
 
@@ -84,6 +86,10 @@ def extract_file_text(filename: str, content: bytes, content_type: str = "") -> 
     try:
         if suffix in {".xlsx", ".xls"}:
             return _extract_excel(content)
+        if suffix == ".docx" or "wordprocessingml.document" in content_type:
+            return _extract_docx(content)
+        if suffix == ".pdf" or content_type == "application/pdf":
+            return _extract_pdf(content)
         if suffix == ".csv" or "csv" in content_type:
             return _extract_csv(content)
         if suffix == ".json" or "json" in content_type:
@@ -95,7 +101,7 @@ def extract_file_text(filename: str, content: bytes, content_type: str = "") -> 
 
     return (
         "Формат файла пока не поддерживается для извлечения текста. "
-        "Поддерживаются txt, md, csv, json, xlsx и xls."
+        "Поддерживаются txt, md, csv, json, xlsx, xls, docx и pdf."
     )
 
 
@@ -157,6 +163,34 @@ def _extract_excel(content: bytes) -> str:
             continue
         frame = frame.fillna("").head(200)
         parts.append(f"Лист: {sheet_name}\n{frame.to_csv(index=False)}")
+    return "\n\n".join(parts)
+
+
+def _extract_docx(content: bytes) -> str:
+    document = Document(BytesIO(content))
+    parts = []
+
+    for paragraph in document.paragraphs:
+        text = paragraph.text.strip()
+        if text:
+            parts.append(text)
+
+    for table in document.tables:
+        for row in table.rows:
+            row_text = "\t".join(cell.text.strip() for cell in row.cells if cell.text.strip())
+            if row_text:
+                parts.append(row_text)
+
+    return "\n".join(parts)
+
+
+def _extract_pdf(content: bytes) -> str:
+    reader = PdfReader(BytesIO(content))
+    parts = []
+    for page_number, page in enumerate(reader.pages, start=1):
+        text = (page.extract_text() or "").strip()
+        if text:
+            parts.append(f"Страница {page_number}\n{text}")
     return "\n\n".join(parts)
 
 

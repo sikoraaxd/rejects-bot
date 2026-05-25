@@ -149,8 +149,7 @@ h2 {
 }
 
 .status-card span,
-.field span,
-.composer-hint {
+.field span {
   color: var(--muted);
   font-size: 12px;
 }
@@ -651,18 +650,6 @@ textarea::placeholder {
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-.composer-hint {
-  display: flex;
-  justify-content: center;
-  padding-top: 8px;
-}
-
-.composer-hint span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .spin {
