@@ -1,14 +1,14 @@
 from datetime import date
+from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlparse
 
 import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 
 from app.core.settings import PROJECT_ROOT, settings
-from app.schemas.analysis import CaseOption, CaseOptionsResponse, SourceDocument
-from io import BytesIO
-from urllib.parse import urlparse
+from app.schemas.analysis import CaseOptionsResponse
 
 import requests
 
@@ -72,25 +72,54 @@ def extract_google_file_id(url: str) -> str:
     raise ValueError(f"Не удалось достать file_id из URL: {url}")
 
 
-def extract_expert_analyze_from_xlsx_url(url: str) -> str:
-    try:
-        file_id = extract_google_file_id(url)
+def download_xlsx_from_url(url: str) -> bytes:
+    file_id = extract_google_file_id(url)
+    parsed = urlparse(url)
 
+    if parsed.netloc == "docs.google.com" and "/spreadsheets/" in parsed.path:
+        download_url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"
+    else:
         download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
 
-        response = requests.get(download_url, allow_redirects=True)
-        response.raise_for_status()
+    response = requests.get(download_url, allow_redirects=True, timeout=30)
+    response.raise_for_status()
 
-        content_type = response.headers.get("content-type", "").lower()
+    content_type = response.headers.get("content-type", "").lower()
+    if "text/html" in content_type:
+        raise RuntimeError(
+            "Google вернул HTML, а не xlsx. "
+            "Скорее всего, файл приватный или требует авторизацию."
+        )
 
-        if "text/html" in content_type:
-            raise RuntimeError(
-                "Google вернул HTML, а не xlsx. "
-                "Скорее всего, файл приватный или требует авторизацию."
-            )
+    return response.content
 
+
+def dataframe_to_text(df: pd.DataFrame, max_rows: int = 500) -> str:
+    if df.empty:
+        return ""
+
+    limited = df.fillna("").head(max_rows)
+    return "\n".join(
+        "\t".join(
+            str(cell).strip()
+            for cell in row
+            if str(cell).strip()
+        )
+        for row in limited.values.tolist()
+    ).strip()
+
+
+def worksheet_rows_to_text(rows: list[list[str]], max_rows: int = 500) -> str:
+    return "\n".join(
+        "\t".join(cell.strip() for cell in row if cell.strip())
+        for row in rows[:max_rows]
+    ).strip()
+
+
+def extract_expert_analyze_from_xlsx_url(url: str) -> str:
+    try:
         sheets = pd.read_excel(
-            BytesIO(response.content),
+            BytesIO(download_xlsx_from_url(url)),
             sheet_name=[1, 2],      # 2-й и 3-й листы, индексация с нуля
             header=None,
             engine="openpyxl",
@@ -99,18 +128,7 @@ def extract_expert_analyze_from_xlsx_url(url: str) -> str:
         parts = []
 
         for sheet_index, df in sheets.items():
-            if df.empty:
-                continue
-
-            content = "\n".join(
-                "\t".join(
-                    str(cell).strip()
-                    for cell in row
-                    if pd.notna(cell) and str(cell).strip()
-                )
-                for row in df.values.tolist()
-            ).strip()
-
+            content = dataframe_to_text(df)
             if content:
                 parts.append(content)
     except Exception as e:
@@ -201,30 +219,56 @@ class SheetsClient:
         )
 
 
-    def extract_expert_analyze(self, sheet_url: str) -> str:
+    def extract_excel_data(
+        self,
+        sheet_url: str,
+        sheet_indexes: list[int] | None = None,
+        max_rows: int = 500,
+    ) -> str:
         try:
             spreadsheet = self._gspread_client().open_by_url(sheet_url)
+            worksheets = spreadsheet.worksheets()
+            if sheet_indexes is not None:
+                worksheets = [
+                    worksheet
+                    for index, worksheet in enumerate(worksheets)
+                    if index in sheet_indexes
+                ]
+
             parts = []
-
-            for worksheet in spreadsheet.worksheets()[1:3]:
-                rows = worksheet.get_all_values()
-                if not rows:
-                    continue
-
-                content = "\n".join(
-                    "\t".join(cell.strip() for cell in row if cell.strip())
-                    for row in rows
-                ).strip()
+            for worksheet in worksheets:
+                content = worksheet_rows_to_text(worksheet.get_all_values(), max_rows=max_rows)
                 if content:
                     parts.append(f"{worksheet.title}\n{content}")
-        
 
             return "\n\n".join(parts)
-        except:
-            print('Excel detected')
-            text = extract_expert_analyze_from_xlsx_url(sheet_url)
-            print(text)
-            return text
+        except Exception as gspread_error:
+            print(f"Google Sheets extraction failed, trying xlsx fallback: {gspread_error}")
+
+        try:
+            sheet_name = sheet_indexes if sheet_indexes is not None else None
+            sheets = pd.read_excel(
+                BytesIO(download_xlsx_from_url(sheet_url)),
+                sheet_name=sheet_name,
+                header=None,
+                engine="openpyxl",
+            )
+            if isinstance(sheets, pd.DataFrame):
+                sheets = {"Sheet1": sheets}
+
+            parts = []
+            for sheet_name, df in sheets.items():
+                content = dataframe_to_text(df, max_rows=max_rows)
+                if content:
+                    parts.append(f"{sheet_name}\n{content}")
+
+            return "\n\n".join(parts)
+        except Exception as xlsx_error:
+            return f"Не удалось загрузить таблицу: {xlsx_error}"
+
+
+    def extract_expert_analyze(self, sheet_url: str) -> str:
+        return self.extract_excel_data(sheet_url, sheet_indexes=[1, 2])
 
 
 if __name__ == "__main__":

@@ -81,6 +81,15 @@ def get_available_months() -> list[str]:
 
 
 @tool
+def get_excel_data(url: str) -> str:
+    '''
+    Используй этот инструмент, чтобы получить данные из Google Sheets или Excel/xlsx файла по ссылке.
+    Подходит для ссылок на docs.google.com/spreadsheets и файлов Google Drive с таблицами.
+    '''
+    return SHEETS.extract_excel_data(url)
+
+
+@tool
 def get_month_cases(month: str = "", query: str = "", limit: int = 200) -> str:
     '''
     Используй этот инструмент, для того чтобы найти кейсы за месяц или выполнить
@@ -184,7 +193,7 @@ def get_case(
 
 def get_agent(
         context: str = 'Нет дополнительной информации', 
-        tools: list = [get_case, get_month_cases, get_expert_analyze, get_available_months]
+        tools: list = [get_case, get_month_cases, get_expert_analyze, get_available_months, get_excel_data]
     ):
     today = datetime.now().strftime("%d/%m/%Y")
 

@@ -7,3 +7,5 @@ __pycache__
 .git
 .env
 data/cache
+ui/node_modules
+ui/dist

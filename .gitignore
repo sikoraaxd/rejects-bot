@@ -21,6 +21,10 @@ htmlcov/
 # Streamlit
 .streamlit/secrets.toml
 
+# Frontend
+ui/node_modules/
+ui/dist/
+
 # Environment and secrets
 .env
 .env.*

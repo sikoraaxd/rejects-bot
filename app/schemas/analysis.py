@@ -96,3 +96,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str = Field(..., description="Agent answer.")
+    resource_context: str = Field(
+        default="",
+        description="Extracted text from uploaded files and links for chat history.",
+    )
