@@ -18,7 +18,7 @@ import { type DragEvent, type FormEvent, useEffect, useMemo, useRef, useState } 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-const API_BASE = (import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_BACKEND_URL ?? "").replace(/\/$/, "");
 
 type ThemeMode = "system" | "light" | "dark";
 
